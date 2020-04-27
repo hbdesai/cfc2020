@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>COVID-19 Treatment Global Clinical Trials</title>
+    <!-- script src="http://maps.google.com/maps/api/js?sensor=false" type="text/javascript"></script -->
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 100%;
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script>
+		var xmlText = '<search_results count="1">'+
+		  '<study rank="1">'+
+			'<nct_id>NCT04333550</nct_id>'+
+			'<title>Application of Desferal to Treat COVID-19</title>'+
+			'<acronym/>'+
+			'<status open="Y">Recruiting</status>'+
+			'<study_results>No Results Available</study_results>'+
+			'<conditions>'+
+			  '<condition>COVID-19</condition>'+
+			'</conditions>'+
+			'<interventions>'+
+			  '<intervention type="Drug">Deferoxamine</intervention>'+
+			'</interventions>'+
+			'<outcome_measures>'+
+			  '<outcome_measure>Mortality rate</outcome_measure>'+
+			  '<outcome_measure>change in patients clinical manifestation</outcome_measure>'+
+			  '<outcome_measure>change in patients PaO2</outcome_measure>'+
+			  '<outcome_measure>Length of hospitalization</outcome_measure>'+
+			  '<outcome_measure>C-reactive protein</outcome_measure>'+
+			  '<outcome_measure>lymphocyte count</outcome_measure>'+
+			  '<outcome_measure>length of intensive care unit stay</outcome_measure>'+
+			'</outcome_measures>'+
+			'<gender>All</gender>'+
+			'<min_age>3 Years</min_age>'+
+			'<max_age>99 Years</max_age>'+
+			'<age_groups>'+
+			  '<age_group>Child</age_group>'+
+			  '<age_group>Adult</age_group>'+
+			  '<age_group>Older Adult</age_group>'+
+			'</age_groups>'+
+			'<phases>'+
+			  '<phase>Phase 1</phase>'+
+			  '<phase>Phase 2</phase>'+
+			'</phases>'+
+			'<enrollment>50</enrollment>'+
+			'<funded_bys>'+
+			  '<funded_by>Other</funded_by>'+
+			'</funded_bys>'+
+			'<study_types>Interventional</study_types>'+
+			'<exp_acc_types/>'+
+			'<study_designs>'+
+			  '<study_design>Allocation: Randomized</study_design>'+
+			  '<study_design>Intervention Model: Parallel Assignment</study_design>'+
+			  '<study_design>Masking: Double (Participant, Investigator)</study_design>'+
+			  '<study_design>Primary Purpose: Treatment</study_design>'+
+			'</study_designs>'+
+			'<start_date>April 2020</start_date>'+
+			'<primary_completion_date>September 2020</primary_completion_date>'+
+			'<completion_date>March 2021</completion_date>'+
+			'<study_first_posted>April 3, 2020</study_first_posted>'+
+			'<last_update_posted>April 6, 2020</last_update_posted>'+
+			'<locations>'+
+			  '<location>Regeneron Study Site, Rochester, Minnesota, United States</location>'+
+			  '<location lat="44.0263889" lng="-92.46416669999999">All that jazz, Rochester, Minnesota, United States</location>'+
+			  '<location lat="51.4866" lng="-0.2207467">Charing Cross Hospital, London, United Kingdom</location>'+
+			  '<location lat="44.0263889" lng="-92.46416669999999">All that jazz, Rochester, Minnesota, United States</location>'+
+			'</locations>'+
+			'<documents/>'+
+			'<url>https://ClinicalTrials.gov/show/NCT04333550</url>'+
+		  '</study>'+
+		'</search_results>';
+		
+		var geocoder;
+		var map;
+		var locations = [];
+		var markers = [];
+		var markerMsgs = [];
+		var parser, xmlDoc;
+		var multiLocs = new Object();
+		var na = "na";
+
+		function initMap() {
+
+			var llc = { lat: 0, lng: 0 };
+			map = new google.maps.Map(document.getElementById('map'), {
+				zoom: 2,
+				center: llc
+			});
+
+			getXMLFileData();
+//			getXMLTextData ();
+
+		}
+
+		function getXMLTextData () {
+			parser = new DOMParser();
+			xmlDocNew = parser.parseFromString(xmlText, "text/xml");
+			loadXMLData(xmlData);
+		}
+
+		let getXMLFile = function(path, callback) {
+			let request = new XMLHttpRequest();
+			request.open("GET", path);
+			request.setRequestHeader("Content-Type", "text/xml");
+			request.onreadystatechange = function() {
+				if (request.readyState === 4 && request.status === 200) {
+					callback(request.responseXML);
+				}
+			};
+			request.send();
+		};
+		
+		function getXMLFileData () {
+//			getXMLFile("https://cfc2020.s3.us-east-2.amazonaws.com/c19d-atf/globalclinicaltrials/ClinicalTrialsData.xml", 
+			getXMLFile("https://cloud-object-storage-v2-cos-standard-6dy.s3.us-east.cloud-object-storage.appdomain.cloud/ClinicalTrialsData.xml",			function(xmlData) {
+				loadXMLData (xmlData);
+				
+				const imagePath = "https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m";
+
+				// Enable marker clustering for this map and these markers
+				var markerClusterer = new MarkerClusterer(map, markers, {imagePath: imagePath});
+				markerClusterer.setMaxZoom(18);
+			});
+		}
+		
+		function getPhases (stdyElm) {
+			var phsMsg = "";
+			var phss = stdyElm.getElementsByTagName("phase")
+			for (var i=0; i< phss.length; i++) {
+				var nxtPhs = phss[i];
+				if (phsMsg != "")
+					phsMsg = phsMsg + ", ";
+				phsMsg = phsMsg + nxtPhs.childNodes[0].nodeValue;
+			}
+			
+			if (phsMsg == "")
+				phsMsg = na;
+			return phsMsg;
+		}
+
+		function getInterventions (stdyElm) {
+			var retMsg = "";
+			var drgMsg = "";
+			var bioMsg = "";
+			var othrMsg = "";
+			var intrs = stdyElm.getElementsByTagName("intervention")
+			for (var i=0; i< intrs.length; i++) {
+				var nxtIntr = intrs[i];
+				var typAttr = nxtIntr.getAttribute('type')
+				if (typAttr == "Drug") {
+					if (drgMsg != "")
+						drgMsg = drgMsg + ", "
+					drgMsg = drgMsg + nxtIntr.childNodes[0].nodeValue;
+				}
+				else if (typAttr = "Biological") {
+					if (bioMsg != "")
+						bioMsg = bioMsg + ", "
+					bioMsg = bioMsg + nxtIntr.childNodes[0].nodeValue;
+				}					
+				else { // if (typAttr = "Other") {
+					if (othrMsg != "")
+						othrMsg = othrMsg + ", "
+					othrMsg = othrMsg + nxtIntr.childNodes[0].nodeValue;
+				}					
+			}
+
+			if (drgMsg != "") {
+				retMsg = "Drugs: "+drgMsg;
+			}	
+			
+			if (bioMsg != "") {
+				if (retMsg != "") {
+					retMsg = retMsg + "<br>";
+				}
+				retMsg = retMsg + "Biological: " + bioMsg
+			}
+			
+			if (othrMsg != "") {
+				if (retMsg != "") {
+					retMsg = retMsg + "<br>";
+				}
+				retMsg = retMsg + "Others: " + othrMsg
+			}
+			if (retMsg == "")
+				retMsg = na;
+			return retMsg;
+		}
+
+		function getStdyElm (stdyElm, name) {
+			return stdyElm.getElementsByTagName(name)[0];
+		}
+
+		function getElmAV (stdyElm, ndName, atName) {
+			var elmNd  = getStdyElm(stdyElm, ndName);
+			if (elmNd == null)
+				return na;
+			else
+				return elmNd.getAttribute(atName);
+		}
+
+		function getElmNV (stdyElm, ndName) {
+			var elmNd  = getStdyElm(stdyElm, ndName);
+			var retVal = "";
+			if (elmNd == null)
+				retVal = na;
+			else {
+				var elmChl = elmNd.childNodes[0];
+				if (elmChl == null)
+					retVal = na;
+				else
+					retVal = elmChl.nodeValue;
+			}
+			return retVal;
+		}
+
+		function getStdyMessage (stdyElm, locStr) {
+			var tleMsg = "<b>"+getElmNV(stdyElm, "title")+"</b>";
+			var locMsg = "Location: "+locStr;
+			var stsMsg = "Status: open-"+getElmAV(stdyElm, "status", 'open')+", "+getElmNV(stdyElm, "status");
+			var phsMsg = "Phases: " + getPhases (stdyElm);
+			var agrMsg = "Ages: min: " + getElmNV(stdyElm, "min_age") + " - max: " + getElmNV(stdyElm, "max_age");
+			
+			var dtsMsg = "Duration: " + getElmNV(stdyElm, "start_date") +" - " + getElmNV(stdyElm, "completion_date");
+			var fudMsg = "Last Update: " + getElmNV(stdyElm, "last_update_posted");
+
+			var drgMsg = "Interventions: " + getInterventions (stdyElm);
+
+			var urlVal = getElmNV(stdyElm, "url");
+			var lnkMsg = "URL: <a href="+urlVal+">"+urlVal+"</a>";			
+			
+			return tleMsg + "<br>" + 
+				   locMsg + "<br>" + 
+			       stsMsg + ". " +
+			       phsMsg + ". " +
+			       agrMsg + "<br>" +
+			       dtsMsg + ". " +
+			       fudMsg + "<br>" +
+			       drgMsg + "<br>" +
+				   lnkMsg;
+		}
+		
+		function loadXMLData (xmlData) {
+			var marker, count=0;
+			var infowindow =  new google.maps.InfoWindow({});
+		
+			var xmlDoc = xmlData.documentElement;
+			var stdys = xmlDoc.getElementsByTagName("study");
+			for (var j = 0; j < stdys.length; j++)
+			{
+				var nxtStdy = stdys[j];
+				var stdyRank = nxtStdy.getAttribute('rank');
+				
+				
+				var locs = stdys[j].getElementsByTagName("location");
+				for (var i = 0; i < locs.length; i++)
+				{
+					// Some locations may not have lat & lng 
+					// 'cause google failed to geocode, so we skip
+					if (locs[i].getAttribute ('lat') == null) {
+						continue;
+					}
+
+					var loc = locs[i].childNodes[0];
+					var locStr = loc.textContent.toString();
+
+					var locLat = locs[i].getAttribute('lat');
+					var locLng = locs[i].getAttribute('lng');
+
+					var locStrLatLng = "{lt:"+locLat+",Lg:"+locLng+"}";
+					var addrCount = multiLocs[locStrLatLng]; 
+					var noise_lat = 0;
+					var noise_lng = 0;
+					
+					if (addrCount == null) {
+						multiLocs[locStrLatLng] = 1;
+					}
+					else {
+						noise_lat = ((addrCount%5)/10000) - .00002;
+						noise_lng = ((addrCount%3)/10000) - .00001;
+						multiLocs[locStrLatLng] = addrCount + 1;
+					}
+
+					var lat = parseFloat(locLat)+noise_lat;
+					var lng = parseFloat(locLng)+noise_lng;
+
+					marker = new google.maps.Marker({
+						  position: new google.maps.LatLng(lat, lng),
+						  map: map,
+						  title: locStr
+						});
+						
+					markers.push(marker);
+					var stdyMsgs = getStdyMessage (nxtStdy, locStr);
+
+					locations.push(stdyRank+"."+(i+1)+" - "+stdyMsgs);
+					  
+					google.maps.event.addListener(marker, 'click', (function (marker, count) {
+							return function () {
+								infowindow.setContent(locations[count]);
+								infowindow.open(map, marker);
+							}
+					})(marker, count));
+					
+					count=count+1;
+				}
+			}
+//			console.log (locations.length);
+		}
+
+    </script>
+    <!-- script src="/maps/documentation/javascript/examples/markerclusterer/markerclustererplus@4.0.1.min.js" -->
+	<script src="https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/markerclusterer.js">
+    </script>
+    <script async defer
+		src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBdRJ8MSd3s6___7bZ6YKwMX9t3GzqAxQw&callback=initMap">
+    </script>
+  </body>
+</html>
