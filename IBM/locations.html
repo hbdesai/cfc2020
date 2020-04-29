@@ -4,7 +4,9 @@
     <title>COVID-19 Treatment Global Clinical Trials</title>
     <!-- script src="http://maps.google.com/maps/api/js?sensor=false" type="text/javascript"></script -->
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
-    <meta charset="utf-8">
+    <!-- meta charset="utf-8" -->
+    <!--meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1" -->
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
     <style>
       /* Always set the map height explicitly to define the size of the div
        * element that contains the map. */
@@ -116,6 +118,8 @@
 			let request = new XMLHttpRequest();
 			request.open("GET", path);
 			request.setRequestHeader("Content-Type", "text/xml");
+			request.responseType = "document";
+			request.overrideMimeType("text/xml");			
 			request.onreadystatechange = function() {
 				if (request.readyState === 4 && request.status === 200) {
 					callback(request.responseXML);
@@ -125,8 +129,8 @@
 		};
 		
 		function getXMLFileData () {
-//			getXMLFile("https://cfc2020.s3.us-east-2.amazonaws.com/c19d-atf/globalclinicaltrials/ClinicalTrialsData.xml", 
-			getXMLFile("https://cloud-object-storage-v2-cos-standard-6dy.s3.us-east.cloud-object-storage.appdomain.cloud/ClinicalTrialsData.xml",			function(xmlData) {
+			getXMLFile("https://s3.us-east.cloud-object-storage.appdomain.cloud/cloud-object-storage-v2-cos-standard-6dy/ClinicalTrialsData.xml",
+			function(xmlData) {
 				loadXMLData (xmlData);
 				
 				const imagePath = "https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m";
@@ -320,7 +324,6 @@
 			}
 //			console.log (locations.length);
 		}
-
     </script>
     <!-- script src="/maps/documentation/javascript/examples/markerclusterer/markerclustererplus@4.0.1.min.js" -->
 	<script src="https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/markerclusterer.js">
