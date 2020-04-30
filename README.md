@@ -3,6 +3,8 @@ An application for the COVID-19 Treatment Global Clinical Trials - Implementatio
 
 These sets of files for an application to show on Google map the locations of COVID-19 Treatment Global Trials. The clinical trial data is downloaded from NIH's Clinical Trial site. To get full set of data including the address the data has to be downloaded, their API response only provides limited data, and does not include location address nor the longitude and latitude data. For now worked around it with a manual step to download to a file. Using python script geocode-addresses.py we embed the latitude and longitude data using Google's Geocoding APIs. The GeocodedLocations is a cache of previously geocoded addresses which are used for processing daily updated data file after downloading. 
 
+NIH Link to download Clinical Trials Data: https://clinicaltrials.gov/ct2/results?cond=COVID-19
+
 Command to geocode a newly downloaded data file is:
 >python geocode-addresses.py SearchResults.xml ClinicalTrialsData.xml t
 
