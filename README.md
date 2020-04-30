@@ -13,7 +13,7 @@ where SearchResults.xml is a newly downloaded data file as input
 The ClinicalTrialsData.xml is manually uploaded on the Cloud object storage bucket. (Currently to IBM COS bucket and AWS S3 bucket)
 
 IBM Cloud Hosting -
-<br>URL: https://s3.us-east.cloud-object-storage.appdomain.cloud/cloud-object-storage-v2-cos-standard-6dy/locations.html
+<br>URL: https://s3.us-east.cloud-object-storage.appdomain.cloud/cfc2020-covid-19-treatment-global-clinical-trials/locations.html
 
 Additionally (AWS Cloud Hosting) -
 <br>URL: https://cfc2020.s3.us-east-2.amazonaws.com/c19d-atf/globalclinicaltrials/locations.html
