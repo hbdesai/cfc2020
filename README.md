@@ -14,8 +14,6 @@ The ClinicalTrialsData.xml is manually uploaded on the Cloud object storage buck
 
 IBM Cloud Hosting -
 <br>URL: https://s3.us-east.cloud-object-storage.appdomain.cloud/cloud-object-storage-v2-cos-standard-6dy/locations.html
-<br>The application from IBM cloud object storage (COS) is partially functional using the above url using <b>Internet Explorer only. It does not render on Chrome - an update.</b>
 
-AWS Cloud Hosting -
+Additionally (AWS Cloud Hosting) -
 <br>URL: https://cfc2020.s3.us-east-2.amazonaws.com/c19d-atf/globalclinicaltrials/locations.html
-<br>This works well with clustered markers
