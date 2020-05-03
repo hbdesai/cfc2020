@@ -84,6 +84,7 @@
 		  '</study>'+
 		'</search_results>';
 		
+		var dataPath = "https://cfc2020.s3.us-east-2.amazonaws.com/c19d-atf/globalclinicaltrials/ClinicalTrialsData.xml";
 		var geocoder;
 		var map;
 		var locations = [];
@@ -92,6 +93,7 @@
 		var parser, xmlDoc;
 		var multiLocs = new Object();
 		var na = "na";
+		
 
 		function initMap() {
 
@@ -116,6 +118,9 @@
 			let request = new XMLHttpRequest();
 			request.open("GET", path);
 			request.setRequestHeader("Content-Type", "text/xml");
+			request.responseType = "document";
+			request.overrideMimeType("text/xml");			
+			
 			request.onreadystatechange = function() {
 				if (request.readyState === 4 && request.status === 200) {
 					callback(request.responseXML);
@@ -125,15 +130,42 @@
 		};
 		
 		function getXMLFileData () {
-			getXMLFile("https://cfc2020.s3.us-east-2.amazonaws.com/c19d-atf/globalclinicaltrials/ClinicalTrialsData.xml", function(xmlData) {
+			getXMLFile(dataPath, function(xmlData) {
 				loadXMLData (xmlData);
 				
 				const imagePath = "https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m";
 
 				// Enable marker clustering for this map and these markers
 				var markerClusterer = new MarkerClusterer(map, markers, {imagePath: imagePath});
-				markerClusterer.setMaxZoom(18);
+				markerClusterer.setMaxZoom(16);
 			});
+		}
+
+		function isEmpty (strVal) {
+			return (strVal == null || strVal == "");
+		}
+				
+		function isEmptyNA (strVal) {
+			return (isEmpty(strVal) || strVal == na);
+		}
+				
+		function getDuration (stdyElm) {
+			var strt = getElmNV(stdyElm, "start_date");
+			var cmpl = getElmNV(stdyElm, "completion_date");
+			if (isEmptyNA(strt) && isEmptyNA(cmpl))
+					return na;
+			else
+				return strt + " - " + cmpl;
+		}
+		
+		function getAges (stdyElm) {
+			var min = getElmNV(stdyElm, "min_age");
+			var max = getElmNV(stdyElm, "max_age");
+			
+			if (isEmptyNA(min) && isEmptyNA(max))
+					return na;
+			else
+				return "min: " + min + " - max: " + max;
 		}
 		
 		function getPhases (stdyElm) {
@@ -178,21 +210,21 @@
 			}
 
 			if (drgMsg != "") {
-				retMsg = "Drugs: "+drgMsg;
+				retMsg = "<u>Drugs</u>: "+drgMsg;
 			}	
 			
 			if (bioMsg != "") {
 				if (retMsg != "") {
-					retMsg = retMsg + "<br>";
+					retMsg = retMsg + ". ";
 				}
-				retMsg = retMsg + "Biological: " + bioMsg
+				retMsg = retMsg + "<u>Biological</u>: " + bioMsg
 			}
 			
 			if (othrMsg != "") {
 				if (retMsg != "") {
-					retMsg = retMsg + "<br>";
+					retMsg = retMsg + ". ";
 				}
-				retMsg = retMsg + "Others: " + othrMsg
+				retMsg = retMsg + "<u>Others</u>: " + othrMsg
 			}
 			if (retMsg == "")
 				retMsg = na;
@@ -228,18 +260,19 @@
 
 		function getStdyMessage (stdyElm, locStr) {
 			var tleMsg = "<b>"+getElmNV(stdyElm, "title")+"</b>";
-			var locMsg = "Location: "+locStr;
-			var stsMsg = "Status: open-"+getElmAV(stdyElm, "status", 'open')+", "+getElmNV(stdyElm, "status");
-			var phsMsg = "Phases: " + getPhases (stdyElm);
-			var agrMsg = "Ages: min: " + getElmNV(stdyElm, "min_age") + " - max: " + getElmNV(stdyElm, "max_age");
+			var locMsg = "<u>Location</u>: "+locStr;
+			var stsMsg = "<u>Status</u>: open-"+getElmAV(stdyElm, "status", 'open')+", "+getElmNV(stdyElm, "status");
+			var phsMsg = "<u>Phases</u>: " + getPhases (stdyElm);
+			var agrMsg = "<u>Ages</u>: " + getAges (stdyElm);
 			
-			var dtsMsg = "Duration: " + getElmNV(stdyElm, "start_date") +" - " + getElmNV(stdyElm, "completion_date");
-			var fudMsg = "Last Update: " + getElmNV(stdyElm, "last_update_posted");
+			var dtsMsg = "<u>Duration</u>: " + getDuration (stdyElm);
+			var fudMsg = "<u>Last Update</u>: " + getElmNV(stdyElm, "last_update_posted");
 
-			var drgMsg = "Interventions: " + getInterventions (stdyElm);
+			var drgMsg = "<u>Interventions</u>: " + getInterventions (stdyElm);
 
 			var urlVal = getElmNV(stdyElm, "url");
-			var lnkMsg = "URL: <a href="+urlVal+">"+urlVal+"</a>";			
+			var blkVal = "_blank";
+			var lnkMsg = "URL Link: <a href="+urlVal+" target="+blkVal+">"+urlVal+"</a>";			
 			
 			return tleMsg + "<br>" + 
 				   locMsg + "<br>" + 
