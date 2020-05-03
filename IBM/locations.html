@@ -85,7 +85,8 @@
 			'<url>https://ClinicalTrials.gov/show/NCT04333550</url>'+
 		  '</study>'+
 		'</search_results>';
-		
+
+		const dataPath = "https://s3.us-east.cloud-object-storage.appdomain.cloud/cloud-object-storage-v2-cos-standard-6dy/ClinicalTrialsData.xml";
 		var geocoder;
 		var map;
 		var locations = [];
@@ -129,18 +130,44 @@
 		};
 		
 		function getXMLFileData () {
-			getXMLFile("https://s3.us-east.cloud-object-storage.appdomain.cloud/cloud-object-storage-v2-cos-standard-6dy/ClinicalTrialsData.xml",
-			function(xmlData) {
+			getXMLFile(dataPath, function(xmlData) {
 				loadXMLData (xmlData);
 				
 				const imagePath = "https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m";
 
 				// Enable marker clustering for this map and these markers
 				var markerClusterer = new MarkerClusterer(map, markers, {imagePath: imagePath});
-				markerClusterer.setMaxZoom(18);
+				markerClusterer.setMaxZoom(16);
 			});
 		}
 		
+		function isEmpty (strVal) {
+			return (strVal == null || strVal == "");
+		}
+				
+		function isEmptyNA (strVal) {
+			return (isEmpty(strVal) || strVal == na);
+		}
+				
+		function getDuration (stdyElm) {
+			var strt = getElmNV(stdyElm, "start_date");
+			var cmpl = getElmNV(stdyElm, "completion_date");
+			if (isEmptyNA(strt) && isEmptyNA(cmpl))
+					return na;
+			else
+				return strt + " - " + cmpl;
+		}
+		
+		function getAges (stdyElm) {
+			var min = getElmNV(stdyElm, "min_age");
+			var max = getElmNV(stdyElm, "max_age");
+			
+			if (isEmptyNA(min) && isEmptyNA(max))
+					return na;
+			else
+				return "min: " + min + " - max: " + max;
+		}
+				
 		function getPhases (stdyElm) {
 			var phsMsg = "";
 			var phss = stdyElm.getElementsByTagName("phase")
@@ -183,21 +210,21 @@
 			}
 
 			if (drgMsg != "") {
-				retMsg = "Drugs: "+drgMsg;
+				retMsg = "<u>Drugs</u>: "+drgMsg;
 			}	
 			
 			if (bioMsg != "") {
 				if (retMsg != "") {
-					retMsg = retMsg + "<br>";
+					retMsg = retMsg + ". ";
 				}
-				retMsg = retMsg + "Biological: " + bioMsg
+				retMsg = retMsg + "<u>Biological</u>: " + bioMsg
 			}
 			
 			if (othrMsg != "") {
 				if (retMsg != "") {
-					retMsg = retMsg + "<br>";
+					retMsg = retMsg + ". ";
 				}
-				retMsg = retMsg + "Others: " + othrMsg
+				retMsg = retMsg + "<u>Others</u>: " + othrMsg
 			}
 			if (retMsg == "")
 				retMsg = na;
@@ -232,19 +259,21 @@
 		}
 
 		function getStdyMessage (stdyElm, locStr) {
-			var tleMsg = "<b>"+getElmNV(stdyElm, "title")+"</b>";
-			var locMsg = "Location: "+locStr;
-			var stsMsg = "Status: open-"+getElmAV(stdyElm, "status", 'open')+", "+getElmNV(stdyElm, "status");
-			var phsMsg = "Phases: " + getPhases (stdyElm);
-			var agrMsg = "Ages: min: " + getElmNV(stdyElm, "min_age") + " - max: " + getElmNV(stdyElm, "max_age");
-			
-			var dtsMsg = "Duration: " + getElmNV(stdyElm, "start_date") +" - " + getElmNV(stdyElm, "completion_date");
-			var fudMsg = "Last Update: " + getElmNV(stdyElm, "last_update_posted");
 
-			var drgMsg = "Interventions: " + getInterventions (stdyElm);
+			var tleMsg = "<b>"+getElmNV(stdyElm, "title")+"</b>";
+			var locMsg = "<u>Location</u>: "+locStr;
+			var stsMsg = "<u>Status</u>: open-"+getElmAV(stdyElm, "status", 'open')+", "+getElmNV(stdyElm, "status");
+			var phsMsg = "<u>Phases</u>: " + getPhases (stdyElm);
+			var agrMsg = "<u>Ages</u>: " + getAges (stdyElm);
+			
+			var dtsMsg = "<u>Duration</u>: " + getDuration (stdyElm);
+			var fudMsg = "<u>Last Update</u>: " + getElmNV(stdyElm, "last_update_posted");
+
+			var drgMsg = "<u>Interventions</u>: " + getInterventions (stdyElm);
 
 			var urlVal = getElmNV(stdyElm, "url");
-			var lnkMsg = "URL: <a href="+urlVal+">"+urlVal+"</a>";			
+			var blkVal = "_blank";
+			var lnkMsg = "URL Link: <a href="+urlVal+" target="+blkVal+">"+urlVal+"</a>";			
 			
 			return tleMsg + "<br>" + 
 				   locMsg + "<br>" + 
