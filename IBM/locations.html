@@ -19,9 +19,15 @@
         margin: 0;
         padding: 0;
       }
+	  #container { border: 0px solid #ccc; direction:ltr; width: 280px; height: 22px; position: fixed; z-index: 1; background-color: #fgf; top: 10px; left: 40%;}
     </style>
   </head>
   <body>
+		<div id="container">
+		    <input type="text" placeholder="Enter filter text" id="searchTxt">
+			<button type="button" onclick="doFilter();">Filter</button>
+			<button type="button" onclick="doReset();">Reset</button>
+		</div>
     <div id="map"></div>
     <script>
 		var xmlText = '<search_results count="1">'+
@@ -87,18 +93,20 @@
 		'</search_results>';
 
 		const dataPath = "https://s3.us-east.cloud-object-storage.appdomain.cloud/cloud-object-storage-v2-cos-standard-6dy/ClinicalTrialsData.xml";
+		const imagePath = "https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m";
 		var geocoder;
 		var map;
 		var locations = [];
 		var markers = [];
-		var markerMsgs = [];
+//		var markerMsgs = [];
+		var markerClusterer;
 		var parser, xmlDoc;
 		var multiLocs = new Object();
 		var na = "na";
 
 		function initMap() {
 
-			var llc = { lat: 0, lng: 0 };
+			var llc = { lat: 0, lng: 0};
 			map = new google.maps.Map(document.getElementById('map'), {
 				zoom: 2,
 				center: llc
@@ -111,8 +119,13 @@
 
 		function getXMLTextData () {
 			parser = new DOMParser();
-			xmlDocNew = parser.parseFromString(xmlText, "text/xml");
-			loadXMLData(xmlData);
+			xmlDoc = parser.parseFromString(xmlText, "text/xml");
+			loadXMLData();
+
+			// Enable marker clustering for this map and these markers
+			markerClusterer = new MarkerClusterer(map, markers, {imagePath: imagePath});
+			markerClusterer.setMaxZoom(16);
+			
 		}
 
 		let getXMLFile = function(path, callback) {
@@ -121,6 +134,7 @@
 			request.setRequestHeader("Content-Type", "text/xml");
 			request.responseType = "document";
 			request.overrideMimeType("text/xml");			
+			
 			request.onreadystatechange = function() {
 				if (request.readyState === 4 && request.status === 200) {
 					callback(request.responseXML);
@@ -131,14 +145,110 @@
 		
 		function getXMLFileData () {
 			getXMLFile(dataPath, function(xmlData) {
-				loadXMLData (xmlData);
-				
-				const imagePath = "https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m";
+				xmlDoc = xmlData;
+				loadXMLData ();
 
 				// Enable marker clustering for this map and these markers
-				var markerClusterer = new MarkerClusterer(map, markers, {imagePath: imagePath});
+				markerClusterer = new MarkerClusterer(map, markers, {imagePath: imagePath});
 				markerClusterer.setMaxZoom(16);
 			});
+		}
+
+		function doFilter () {
+		
+			markerClusterer.clearMarkers();			
+			markers = [];
+			locations = [];
+
+			var llc = { lat: 0, lng: 0 };
+			map.setZoom(2);
+			map.setCenter(llc);
+	
+			loadXMLData();
+			
+			// Enable marker clustering for this map and these markers
+			markerClusterer = new MarkerClusterer(map, markers, {imagePath: imagePath});
+			markerClusterer.setMaxZoom(16);	
+		}
+
+		function doReset () {
+		  document.getElementById("searchTxt").value = "";
+		  
+		  doFilter ();
+		}
+
+		function loadXMLData () {
+			var marker, count=0;
+			var infowindow = new google.maps.InfoWindow({});
+			
+			var searchTxt  = document.getElementById("searchTxt").value;
+			var searchTxtRE = new RegExp (searchTxt, "i");
+		
+			var xmlD = xmlDoc.documentElement;
+			var stdys = xmlD.getElementsByTagName("study");		
+			
+			for (var j = 0; j < stdys.length; j++)
+			{
+				var nxtStdy = stdys[j];
+				var stdyRank = nxtStdy.getAttribute('rank');
+				
+				var locs = stdys[j].getElementsByTagName("location");
+				for (var i = 0; i < locs.length; i++)
+				{
+					// Some locations may not have lat & lng 
+					// 'cause google failed to geocode, so we skip
+					if (locs[i].getAttribute ('lat') == null) {
+						continue;
+					}
+
+					var loc = locs[i].childNodes[0];
+					var locStr = loc.textContent.toString();
+
+					var stdyMsgs = getStdyMessage (nxtStdy, locStr);
+
+					if (!isEmpty(searchTxt) && stdyMsgs.search(searchTxtRE) < 0)
+						continue;
+						
+					var locLat = locs[i].getAttribute('lat');
+					var locLng = locs[i].getAttribute('lng');
+
+					var locStrLatLng = "{lt:"+locLat+",Lg:"+locLng+"}";
+					var addrCount = multiLocs[locStrLatLng]; 
+					var noise_lat = 0;
+					var noise_lng = 0;
+					
+					if (addrCount == null) {
+						multiLocs[locStrLatLng] = 1;
+					}
+					else {
+						noise_lat = ((addrCount%5)/10000) - .00002;
+						noise_lng = ((addrCount%3)/10000) - .00001;
+						multiLocs[locStrLatLng] = addrCount + 1;
+					}
+
+					var lat = parseFloat(locLat)+noise_lat;
+					var lng = parseFloat(locLng)+noise_lng;
+
+					marker = new google.maps.Marker({
+						  position: new google.maps.LatLng(lat, lng),
+						  map: map,
+						  title: locStr
+						});
+
+					markers.push(marker);						
+					locations.push(stdyRank+"."+(i+1)+" - "+stdyMsgs);
+					  
+					google.maps.event.addListener(marker, 'click', (function (marker, count) {
+							return function () {
+								infowindow.setContent(locations[count]);
+								infowindow.open(map, marker);
+							}
+					})(marker, count));
+					
+					count=count+1;
+				}
+			}
+//			console.log (locations.length);
 		}
 		
 		function isEmpty (strVal) {
@@ -167,7 +277,7 @@
 			else
 				return "min: " + min + " - max: " + max;
 		}
-				
+		
 		function getPhases (stdyElm) {
 			var phsMsg = "";
 			var phss = stdyElm.getElementsByTagName("phase")
@@ -259,7 +369,6 @@
 		}
 
 		function getStdyMessage (stdyElm, locStr) {
-
 			var tleMsg = "<b>"+getElmNV(stdyElm, "title")+"</b>";
 			var locMsg = "<u>Location</u>: "+locStr;
 			var stsMsg = "<u>Status</u>: open-"+getElmAV(stdyElm, "status", 'open')+", "+getElmNV(stdyElm, "status");
@@ -284,74 +393,6 @@
 			       fudMsg + "<br>" +
 			       drgMsg + "<br>" +
 				   lnkMsg;
-		}
-		
-		function loadXMLData (xmlData) {
-			var marker, count=0;
-			var infowindow =  new google.maps.InfoWindow({});
-		
-			var xmlDoc = xmlData.documentElement;
-			var stdys = xmlDoc.getElementsByTagName("study");
-			for (var j = 0; j < stdys.length; j++)
-			{
-				var nxtStdy = stdys[j];
-				var stdyRank = nxtStdy.getAttribute('rank');
-				
-				
-				var locs = stdys[j].getElementsByTagName("location");
-				for (var i = 0; i < locs.length; i++)
-				{
-					// Some locations may not have lat & lng 
-					// 'cause google failed to geocode, so we skip
-					if (locs[i].getAttribute ('lat') == null) {
-						continue;
-					}
-
-					var loc = locs[i].childNodes[0];
-					var locStr = loc.textContent.toString();
-
-					var locLat = locs[i].getAttribute('lat');
-					var locLng = locs[i].getAttribute('lng');
-
-					var locStrLatLng = "{lt:"+locLat+",Lg:"+locLng+"}";
-					var addrCount = multiLocs[locStrLatLng]; 
-					var noise_lat = 0;
-					var noise_lng = 0;
-					
-					if (addrCount == null) {
-						multiLocs[locStrLatLng] = 1;
-					}
-					else {
-						noise_lat = ((addrCount%5)/10000) - .00002;
-						noise_lng = ((addrCount%3)/10000) - .00001;
-						multiLocs[locStrLatLng] = addrCount + 1;
-					}
-
-					var lat = parseFloat(locLat)+noise_lat;
-					var lng = parseFloat(locLng)+noise_lng;
-
-					marker = new google.maps.Marker({
-						  position: new google.maps.LatLng(lat, lng),
-						  map: map,
-						  title: locStr
-						});
-						
-					markers.push(marker);
-					var stdyMsgs = getStdyMessage (nxtStdy, locStr);
-
-					locations.push(stdyRank+"."+(i+1)+" - "+stdyMsgs);
-					  
-					google.maps.event.addListener(marker, 'click', (function (marker, count) {
-							return function () {
-								infowindow.setContent(locations[count]);
-								infowindow.open(map, marker);
-							}
-					})(marker, count));
-					
-					count=count+1;
-				}
-			}
-//			console.log (locations.length);
 		}
     </script>
     <!-- script src="/maps/documentation/javascript/examples/markerclusterer/markerclustererplus@4.0.1.min.js" -->
