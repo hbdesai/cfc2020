@@ -17,15 +17,53 @@
         margin: 0;
         padding: 0;
       }
-	  #container { border: 0px solid #ccc; direction:ltr; width: 280px; height: 22px; position: fixed; z-index: 1; background-color: #fgf; top: 10px; left: 40%;}
+	  
+	#container { border: 0px solid #ccc; direction:ltr; width: 400px; height: 25px; position: fixed; z-index: 1; background-color: #fgf; top: 2px; left: 35%;}
+	input[type=text] {
+	  width: 200px;
+	  height: 30px;
+	  padding: 6px 6px;
+	  margin: 8px 0;
+	  border-radius: 2px;
+	  box-sizing: border-box;
+	}
+	button {
+	  background-color: #fff;
+	  height: 29px;	  
+	  width: 50px;
+	  border: 2px;
+	  transition-duration: 0.4s;
+#	  color: white;
+	  padding: 6px 6px;
+	  text-align: center;
+#	  text-decoration: none;
+	  display: inline-block;
+	  font-size: 12px;
+	  border-radius: 4px;
+	  margin: 4px 2px;
+	  box-sizing: border-box;
+	  cursor: pointer;
+	}
+	button:hover {
+	  background-color: #e7e7e7; /* Gray was Green #4CAF50; / * Green */
+	}
     </style>
   </head>
   <body>
 		<div id="container">
 		    <input type="text" placeholder="Enter filter text" id="searchTxt">
-			<button type="button" onclick="doFilter();">Filter</button>
-			<button type="button" onclick="doReset();">Reset</button>
+			<button type="button" id="filterBtn" onclick="doFilter();">Filter</button>
+			<button type="button" id="resetBtn" onclick="doReset();">Reset</button>
 		</div>
+		<script>
+			var input = document.getElementById("searchTxt");
+			input.addEventListener("keyup", function(event) {
+			  if (event.keyCode === 13) {
+			   event.preventDefault();
+			   document.getElementById("filterBtn").click();
+			  }
+			});
+		</script>
     <div id="map"></div>
     <script>
 		var xmlText = '<search_results count="1">'+
@@ -101,6 +139,7 @@
 		var parser, xmlDoc;
 		var multiLocs = new Object();
 		var na = "na";
+		var infowindow;
 
 		function initMap() {
 
@@ -154,6 +193,7 @@
 
 		function doFilter () {
 		
+		    infowindow.close();
 			markerClusterer.clearMarkers();			
 			markers = [];
 			locations = [];
@@ -177,9 +217,9 @@
 
 		function loadXMLData () {
 			var marker, count=0;
-			var infowindow = new google.maps.InfoWindow({});
+			infowindow = new google.maps.InfoWindow({});
 			
-			var searchTxt  = document.getElementById("searchTxt").value;
+			var searchTxt  = document.getElementById("searchTxt").value.trim();
 			var searchTxtRE = new RegExp (searchTxt, "i");
 		
 			var xmlD = xmlDoc.documentElement;
